@@ -37,14 +37,29 @@ app.use("/api/me", meRoutes);        // ratings + watchlist (login required)
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found." }));
 
 // --- Serve the built React frontend (production) ---
-// During deployment the frontend is built into frontend/dist. If that folder
-// exists, Express serves it AND falls back to index.html for client-side routes
+// During deployment the frontend is built into frontend/dist. Express serves
+// those static files AND falls back to index.html for client-side routes
 // (so refreshing /movie/tt123 or /profile still works).
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const clientDist = path.join(__dirname, "..", "frontend", "dist");
-if (fs.existsSync(clientDist)) {
+const indexHtml = path.join(clientDist, "index.html");
+const hasFrontend = fs.existsSync(indexHtml);
+
+// Diagnostic so the deploy logs clearly show what was found.
+console.log(`[frontend] looking for build at: ${clientDist}`);
+console.log(`[frontend] index.html found: ${hasFrontend}`);
+
+if (hasFrontend) {
   app.use(express.static(clientDist));
-  app.get("*", (req, res) => res.sendFile(path.join(clientDist, "index.html")));
+  // Send index.html for any non-API GET so React Router can handle the route.
+  app.get("*", (req, res) => res.sendFile(indexHtml));
+} else {
+  // Frontend wasn't built — show a helpful message instead of a bare 404.
+  app.get("*", (req, res) =>
+    res
+      .status(503)
+      .send("Frontend build not found. The build step did not produce frontend/dist.")
+  );
 }
 
 const PORT = process.env.PORT || 5000;
