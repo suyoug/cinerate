@@ -1,0 +1,16 @@
+# Render Blueprint — lets Render set up the whole service automatically.
+# In Render: "New +" → "Blueprint" → connect this repo and it reads this file.
+services:
+  - type: web
+    name: cinerate
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      # Paste your OMDb key in the Render dashboard (kept secret, not in git).
+      - key: OMDB_API_KEY
+        sync: false
+      # Render generates a strong random secret for signing login tokens.
+      - key: JWT_SECRET
+        generateValue: true
